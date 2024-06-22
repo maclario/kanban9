@@ -36,11 +36,11 @@ public abstract class TaskManagerTest<T extends TaskManager> {
         manager.createSubtask(sub);
 
         subWithStatusDone = new Subtask("newSubTitle", "newSubDesc", epicId);
-        subWithStatusDone.setId(sub.getId());
+        subWithStatusDone.setId(manager.getId());
         subWithStatusDone.setStatus(TaskStatus.DONE);
 
         subWithStatusInProgress = new Subtask("newSubTitle2", "newSubDesc2", epicId);
-        subWithStatusInProgress.setId(sub.getId() + 1);
+        //subWithStatusInProgress.setId(subId + 1);
         subWithStatusInProgress.setStatus(TaskStatus.IN_PROGRESS);
     }
 
@@ -131,7 +131,8 @@ public abstract class TaskManagerTest<T extends TaskManager> {
     @Test
     public void epicStatusIsInProgressIfEpicSubsListHasSubtaskWithStatusInProgress() {
         manager.updateSubtask(subWithStatusDone);
-        manager.createSubtask(sub);
+        manager.createSubtask(new Subtask("new_sub_t", "new_sub_d", epic.getId()));
+        subWithStatusInProgress.setId(manager.getId());
         manager.updateSubtask(subWithStatusInProgress);
         assertEquals(TaskStatus.IN_PROGRESS, epic.getStatus());
     }
@@ -139,7 +140,7 @@ public abstract class TaskManagerTest<T extends TaskManager> {
     @Test
     public void epicStatusIsInProgressIfEpicSubsListHasSubtaskWithStatusNew() {
         manager.updateSubtask(subWithStatusDone);
-        manager.createSubtask(sub);
+        manager.createSubtask(new Subtask("new_sub_t", "new_sub_d", epic.getId()));
         assertEquals(TaskStatus.IN_PROGRESS, epic.getStatus());
     }
 
