@@ -36,8 +36,15 @@ public class InMemoryTaskManager implements TaskManager {
         if (isTimeIntervalBooked(task, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
         }
-        Integer newId = generateId();
-        task.setId(newId);
+
+        Integer newId;
+        if (task.getId() == null) {
+            newId = generateId();
+            task.setId(newId);
+        } else {
+            newId = task.getId();
+        }
+
         allTasks.put(newId, task);
         addTaskToPrioritizedTasks(task);
     }
@@ -47,8 +54,15 @@ public class InMemoryTaskManager implements TaskManager {
         if (isTimeIntervalBooked(subtask, getPrioritizedTasks())) {
             throw new InvalidReceivedTimeException("Данное время занято другой задачей.");
         }
-        Integer newId = generateId();
-        subtask.setId(newId);
+
+        Integer newId;
+        if (subtask.getId() == null) {
+            newId = generateId();
+            subtask.setId(newId);
+        } else {
+            newId = subtask.getId();
+        }
+
         EpicTask epicOwner = allEpicTasks.get(subtask.getEpicId());
         addTaskToPrioritizedTasks(subtask);
         epicOwner.addSubtask(newId);
@@ -58,7 +72,14 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void createEpicTask(EpicTask epictask) {
-        Integer newId = generateId();
+        Integer newId;
+        if (epictask.getId() == null) {
+            newId = generateId();
+            epictask.setId(newId);
+        } else {
+            newId = epictask.getId();
+        }
+
         epictask.setId(newId);
         allEpicTasks.put(newId, epictask);
         updateEpicAttributes(newId);
@@ -166,6 +187,7 @@ public class InMemoryTaskManager implements TaskManager {
         history.remove(id);
         EpicOwner.removeLinkedSubtask(id);
         updateEpicAttributes(EpicOwner.getId());
+        allSubtasks.remove(id);
     }
 
     @Override

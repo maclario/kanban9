@@ -109,5 +109,20 @@ public class Main {
         System.out.println("Эпики " + manager.getAllEpicTasks());
         System.out.println("Подзадачи " + manager.getAllSubtasks());
 
+        System.out.println("");
+        String path = "/tasks";
+        String[] pathParts = path.split("/");
+        System.out.println(pathParts.length + "  >  Это длина таски без айдишки");
+        System.out.println(pathParts[0] + "Это передняя часть");
+        System.out.println(pathParts[1] + "   >  Это таска");
+
+        System.out.println("");
+        String path2 = "/tasks/2";
+        String[] pathParts2 = path2.split("/");
+        System.out.println(pathParts2.length + "  >  Это длина таски с айдишкой");
+        System.out.println(pathParts2[0] + "Это передняя часть");
+        System.out.println(pathParts2[1] + "   >  Это таска");
+        System.out.println(pathParts2[2] + "   >  Это айдишник");
+
     }
 }
