@@ -2,6 +2,7 @@ package server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import model.Task;
 import model.TaskStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -9,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.adapters.DurationAdapter;
 import server.adapters.LocalDateTimeAdapter;
-import server.type_tokens.TaskListTypeToken;
 import service.InMemoryTaskManager;
 import service.TaskManager;
 
@@ -76,7 +76,7 @@ public class HttpPrioritizedTest {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        List<Task> prioritizedTasksFromServer = gson.fromJson(response.body(), new TaskListTypeToken().getType());
+        List<Task> prioritizedTasksFromServer = gson.fromJson(response.body(), new TypeToken<List<Task>>(){}.getType());
 
         assertEquals(200, response.statusCode());
         assertEquals(3, prioritizedTasksFromServer.size(), "Размер списка не совпадает.");

@@ -2,14 +2,14 @@ package server.handlers;
 
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import exceptions.InvalidReceivedTimeException;
+import exceptions.TaskNotFoundException;
+import model.Subtask;
 import service.TaskManager;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
 
-public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
+public class SubtaskHandler extends BaseHttpHandler {
 
     public SubtaskHandler(TaskManager taskManager, Gson gson) {
         super(taskManager, gson);
@@ -17,20 +17,22 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        jtbd = defineJTBD(exchange);
+        String[] pathParts = getPathParts(exchange);
+        String endpoint = defineEndpoint(exchange);
 
-        switch (jtbd) {
-            case GET_BY_ID:
+        switch (endpoint) {
+            case "GET_BY_ID":
                 try {
+                    Integer id = Integer.parseInt(pathParts[2]);
                     sendText(exchange, gson.toJson(taskManager.getSubtask(id)));
-                } catch (NoSuchElementException e) {
+                } catch (TaskNotFoundException e) {
                     sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
                 }
                 break;
 
-            case GET:
+            case "GET":
                 try {
                     sendText(exchange, gson.toJson(taskManager.getAllSubtasks()));
                 } catch (Exception e) {
@@ -38,22 +40,22 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
                 }
                 break;
 
-            case POST_BY_ID:
+            case "POST_BY_ID":
                 try {
-                    taskManager.updateSubtask(receivedSub);
+                    Subtask receivedSubtask = gson.fromJson(contentFromRequestBody, Subtask.class);
+                    taskManager.updateSubtask(receivedSubtask);
                     sendOk(exchange);
                 } catch (InvalidReceivedTimeException e) {
                     sendHasInteractions(exchange);
-                } catch (NoSuchElementException e) {
-                    sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
                 }
                 break;
 
-            case POST:
+            case "POST":
                 try {
-                    taskManager.createSubtask(receivedSub);
+                    Subtask receivedSubtask = gson.fromJson(contentFromRequestBody, Subtask.class);
+                    taskManager.createSubtask(receivedSubtask);
                     sendCreated(exchange);
                 } catch (InvalidReceivedTimeException e) {
                     sendHasInteractions(exchange);
@@ -62,15 +64,12 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
                 }
                 break;
 
-            case DELETE_BY_ID:
+            case "DELETE_BY_ID":
                 try {
-                        //System.out.println("Мне пришла Айдишка: " + id);
-                        //System.out.println("Список сабов до удаления: " + taskManager.getAllSubtasks());
-                        //System.out.println("Хочу удалить задачу: " + taskManager.getSubtask(id));
+                    Integer id = Integer.parseInt(pathParts[2]);
                     taskManager.deleteSubtask(id);
-                        //System.out.println("Результат после удаления: " + taskManager.getAllSubtasks());
                     sendOk(exchange);
-                } catch (NullPointerException e) {
+                } catch (TaskNotFoundException e) {
                     sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
@@ -78,7 +77,7 @@ public class SubtaskHandler extends BaseHttpHandler implements HttpHandler {
                 break;
 
             default:
-                sendNotFound(exchange);
+                sendBadRequest(exchange);
         }
     }
 

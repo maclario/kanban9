@@ -2,14 +2,14 @@ package server.handlers;
 
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import exceptions.InvalidReceivedTimeException;
+import exceptions.TaskNotFoundException;
+import model.EpicTask;
 import service.TaskManager;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
 
-public class EpictaskHandler extends BaseHttpHandler implements HttpHandler {
+public class EpictaskHandler extends BaseHttpHandler {
 
     public EpictaskHandler(TaskManager taskManager, Gson gson) {
         super(taskManager, gson);
@@ -17,20 +17,22 @@ public class EpictaskHandler extends BaseHttpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        jtbd = defineJTBD(exchange);
+        String[] pathParts = getPathParts(exchange);
+        String endpoint = defineEndpoint(exchange);
 
-        switch (jtbd) {
-            case GET_BY_ID:
+        switch (endpoint) {
+            case "GET_BY_ID":
                 try {
+                    Integer id = Integer.parseInt(pathParts[2]);
                     sendText(exchange, gson.toJson(taskManager.getEpicTask(id)));
-                } catch (NoSuchElementException e) {
+                } catch (TaskNotFoundException e) {
                     sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
                 }
                 break;
 
-            case GET:
+            case "GET":
                 try {
                     String allEpics = gson.toJson(taskManager.getAllEpicTasks());
                     sendText(exchange, allEpics);
@@ -39,19 +41,21 @@ public class EpictaskHandler extends BaseHttpHandler implements HttpHandler {
                 }
                 break;
 
-            case GET_SUBS_BY_ID:
+            case "GET_SUBS_BY_ID":
                 try {
+                    Integer id = Integer.parseInt(pathParts[2]);
                     String subtasksOfEpic = gson.toJson(taskManager.getSubtasksOfEpic(id));
                     sendText(exchange, subtasksOfEpic);
-                } catch (NullPointerException e) {
+                } catch (TaskNotFoundException e) {
                     sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
                 }
                 break;
 
-            case POST:
+            case "POST":
                 try {
+                    EpicTask receivedEpic = gson.fromJson(contentFromRequestBody, EpicTask.class);
                     taskManager.createEpicTask(receivedEpic);
                     sendCreated(exchange);
                 } catch (InvalidReceivedTimeException e) {
@@ -61,11 +65,12 @@ public class EpictaskHandler extends BaseHttpHandler implements HttpHandler {
                 }
                 break;
 
-            case DELETE_BY_ID:
+            case "DELETE_BY_ID":
                 try {
+                    Integer id = Integer.parseInt(pathParts[2]);
                     taskManager.deleteEpicTask(id);
                     sendOk(exchange);
-                } catch (NullPointerException e) {
+                } catch (TaskNotFoundException e) {
                     sendNotFound(exchange);
                 } catch (Exception e) {
                     sendInternalServerError(exchange);
@@ -73,7 +78,7 @@ public class EpictaskHandler extends BaseHttpHandler implements HttpHandler {
                 break;
 
             default:
-                sendNotFound(exchange);
+                sendBadRequest(exchange);
         }
     }
 

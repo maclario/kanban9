@@ -2,6 +2,7 @@ package server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import model.EpicTask;
 import model.Subtask;
 import model.Task;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.adapters.DurationAdapter;
 import server.adapters.LocalDateTimeAdapter;
-import server.type_tokens.SubtaskListTypeToken;
 import service.InMemoryTaskManager;
 import service.TaskManager;
 
@@ -81,7 +81,7 @@ public class HttpSubtasksTest {
 
         response = client.send(request, HttpResponse.BodyHandlers.ofString());
         List<Subtask> subtasksFromManager = manager.getAllSubtasks();
-        List<Subtask> subtasksFromResponse = gson.fromJson(response.body(), new SubtaskListTypeToken().getType());
+        List<Subtask> subtasksFromResponse = gson.fromJson(response.body(), new TypeToken<List<Subtask>>(){}.getType());
 
         assertEquals(200, response.statusCode());
         assertEquals(subtasksFromManager.size(), subtasksFromResponse.size(), "Размеры списков не совпадают.");

@@ -1,6 +1,7 @@
 package service;
 
 import exceptions.InvalidReceivedTimeException;
+import exceptions.TaskNotFoundException;
 import model.*;
 
 import java.time.Duration;
@@ -80,7 +81,6 @@ public class InMemoryTaskManager implements TaskManager {
             newId = epictask.getId();
         }
 
-        epictask.setId(newId);
         allEpicTasks.put(newId, epictask);
         updateEpicAttributes(newId);
     }
@@ -104,21 +104,21 @@ public class InMemoryTaskManager implements TaskManager {
     public Task getTask(Integer id) {
         Optional<Task> requestedTask = Optional.ofNullable(allTasks.get(id));
         requestedTask.ifPresent(history::add);
-        return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (Task, id: " + id + ") не найдена."));
+        return requestedTask.orElseThrow(() -> new TaskNotFoundException("Задача (Task, id: " + id + ") не найдена."));
     }
 
     @Override
     public EpicTask getEpicTask(Integer id) {
         Optional<EpicTask> requestedTask = Optional.ofNullable(allEpicTasks.get(id));
         requestedTask.ifPresent(history::add);
-        return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (EpicTask, id: " + id + ") не найдена."));
+        return requestedTask.orElseThrow(() -> new TaskNotFoundException("Задача (EpicTask, id: " + id + ") не найдена."));
     }
 
     @Override
     public Subtask getSubtask(Integer id) {
         Optional<Subtask> requestedTask = Optional.ofNullable(allSubtasks.get(id));
         requestedTask.ifPresent(history::add);
-        return requestedTask.orElseThrow(() -> new NoSuchElementException("Задача (Subtask, id: " + id + ") не найдена."));
+        return requestedTask.orElseThrow(() -> new TaskNotFoundException("Задача (Subtask, id: " + id + ") не найдена."));
     }
 
     @Override
@@ -161,6 +161,9 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteTask(Integer id) {
         final Task tempTask = allTasks.get(id);
+        if (tempTask == null) {
+            throw new TaskNotFoundException("Задача (Task, id: " + id + ") не найдена.");
+        }
         allTasks.remove(id);
         history.remove(id);
         prioritizedTasks.remove(tempTask);
@@ -169,6 +172,9 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteEpicTask(Integer id) {
         final EpicTask tempEpic = allEpicTasks.get(id);
+        if (tempEpic == null) {
+            throw new TaskNotFoundException("Задача (EpicTask, id: " + id + ") не найдена.");
+        }
         history.remove(id);
 
         tempEpic.getSubtasks().stream()
@@ -182,6 +188,9 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteSubtask(Integer id) {
         final Subtask tempSub = allSubtasks.get(id);
+        if (tempSub == null) {
+            throw new TaskNotFoundException("Задача (Subtask, id: " + id + ") не найдена.");
+        }
         final EpicTask EpicOwner = allEpicTasks.get(tempSub.getEpicId());
         prioritizedTasks.remove(tempSub);
         history.remove(id);

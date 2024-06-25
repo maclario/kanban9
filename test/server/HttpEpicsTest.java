@@ -2,6 +2,7 @@ package server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import model.EpicTask;
 import model.Subtask;
 import model.TaskStatus;
@@ -10,8 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.adapters.DurationAdapter;
 import server.adapters.LocalDateTimeAdapter;
-import server.type_tokens.EpicListTypeToken;
-import server.type_tokens.SubtaskListTypeToken;
 import service.InMemoryTaskManager;
 import service.TaskManager;
 
@@ -76,7 +75,7 @@ public class HttpEpicsTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         List<EpicTask> epicsFromManager = manager.getAllEpicTasks();
-        List<EpicTask> epicsFromResponse = gson.fromJson(response.body(), new EpicListTypeToken().getType());
+        List<EpicTask> epicsFromResponse = gson.fromJson(response.body(), new TypeToken<List<EpicTask>>(){}.getType());
 
         assertEquals(200, response.statusCode());
         assertEquals(epicsFromManager.size(), epicsFromResponse.size(), "Размеры списков не совпадают.");
@@ -159,7 +158,7 @@ public class HttpEpicsTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         List<Subtask> subtasksOfEpicFromManager = manager.getSubtasksOfEpic(epicId);
-        List<Subtask> subtasksOfEpicFromServer = gson.fromJson(response.body(), new SubtaskListTypeToken().getType());
+        List<Subtask> subtasksOfEpicFromServer = gson.fromJson(response.body(), new TypeToken<List<Subtask>>(){}.getType());
 
         assertEquals(200, response.statusCode());
         assertEquals(subtasksOfEpicFromManager.size(), subtasksOfEpicFromServer.size(), "Количество подзадач не совпадает.");

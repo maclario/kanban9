@@ -2,23 +2,21 @@ package server.handlers;
 
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
-import model.EpicTask;
-import model.Subtask;
+import com.sun.net.httpserver.HttpHandler;
 import model.Task;
 import service.TaskManager;
+import util.NumChecker;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class BaseHttpHandler {
+public abstract class BaseHttpHandler implements HttpHandler {
+    protected String contentFromRequestBody;
     protected TaskManager taskManager;
     protected Gson gson;
-    protected Integer id;
-    protected Task receivedTask;
-    protected Subtask receivedSub;
-    protected EpicTask receivedEpic;
     protected static final int OK = 200;
     protected static final int CREATED = 201;
     protected static final int BAD_REQUEST = 400;
@@ -26,83 +24,60 @@ public class BaseHttpHandler {
     protected static final int METHOD_NOT_ALLOWED = 405;
     protected static final int NOT_ACCEPTABLE = 406;
     protected static final int INTERNAL_SERVER_ERROR = 500;
-    protected JTBD jtbd;
+    protected static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+    protected static final String DEFAULT_CONTENT_TYPE = "application/json;charset=utf-8";
 
     public BaseHttpHandler(TaskManager taskManager, Gson gson) {
         this.taskManager = taskManager;
         this.gson = gson;
     }
 
-    protected JTBD defineJTBD(HttpExchange exchange) throws IOException {
+    protected String[] getPathParts(HttpExchange exchange) {
+        return exchange.getRequestURI().getPath().split("/");
+    }
+
+    protected String defineEndpoint(HttpExchange exchange) throws IOException {
         String method = exchange.getRequestMethod();
-        String[] pathParts = exchange.getRequestURI().getPath().split("/");
-        JTBD jtbd = JTBD.UNKNOWN;
+        String[] pathParts = getPathParts(exchange);
+        String endpoint = "UNKNOWN";
         switch (method) {
-            case "GET" -> jtbd = defineGetVariation(pathParts);
-            case "POST" -> jtbd = definePostVariation(pathParts, exchange);
-            case "DELETE" -> jtbd = defineDeleteVariation(pathParts, exchange);
+            case "GET" -> endpoint = defineGetVariation(pathParts);
+            case "POST" -> endpoint = definePostVariation(exchange);
+            case "DELETE" -> endpoint = defineDeleteVariation(pathParts, exchange);
             default -> sendMethodNotAllowed(exchange);
         }
-        return jtbd;
+        return endpoint;
     }
 
-    protected JTBD defineGetVariation(String[] pathParts) {
-        if (pathParts.length == 3) {
-            try {
-                id = Integer.parseInt(pathParts[2]);
-                return JTBD.GET_BY_ID;
-            } catch (NumberFormatException e) {
-                throw new NumberFormatException("Полученный идентификатор не является числом.");
-            }
-        } else if (pathParts.length == 4 && pathParts[1].equals("epics") && pathParts[3].equals("subtasks")) {
-            try {
-                id = Integer.parseInt(pathParts[2]);
-                return JTBD.GET_SUBS_BY_ID;
-            } catch (NumberFormatException e) {
-                throw new NumberFormatException("Полученный идентификатор не является числом.");
-            }
+    protected String defineGetVariation(String[] pathParts) {
+        if (pathParts.length == 3 && NumChecker.isNum(pathParts[2])) {
+            return "GET_BY_ID";
+        } else if (pathParts.length == 4 && NumChecker.isNum(pathParts[2]) && pathParts[3].equals("subtasks")) {
+            return "GET_SUBS_BY_ID";
+        } else if (pathParts.length == 2) {
+            return "GET";
         } else {
-            return JTBD.GET;
+            return "UNKNOWN";
         }
     }
 
-    protected JTBD definePostVariation(String[] pathParts, HttpExchange exchange) throws IOException {
-        switch (pathParts[1]) {
-            case "tasks":
-                receivedTask = gson.fromJson(getTaskFromRequestBody(exchange), Task.class);
-                id = receivedTask.getId();
-                break;
-            case "subtasks":
-                receivedSub = gson.fromJson(getTaskFromRequestBody(exchange), Subtask.class);
-                id = receivedSub.getId();
-                break;
-            case "epics":
-                receivedEpic = gson.fromJson(getTaskFromRequestBody(exchange), EpicTask.class);
-                id = receivedEpic.getId();
-                break;
-            default:
-                sendBadRequest(exchange);
-        }
-
-        if (id != null) {
-            return JTBD.POST_BY_ID;
+    protected String definePostVariation(HttpExchange exchange) throws IOException {
+        contentFromRequestBody = parseContentFromRequestBody(exchange);
+        Task receivedTask = gson.fromJson(contentFromRequestBody, Task.class);
+        if (receivedTask.getId() != null) {
+            return "POST_BY_ID";
         } else {
-            return JTBD.POST;
+            return "POST";
         }
     }
 
-    protected JTBD defineDeleteVariation(String[] pathParts, HttpExchange exchange) {
-        if (pathParts.length == 3) {
-            try {
-                id = Integer.parseInt(pathParts[2]);
-                return JTBD.DELETE_BY_ID;
-            } catch (NumberFormatException e) {
-                throw new NumberFormatException("Полученный идентификатор не является числом.");
-            }
+    protected String defineDeleteVariation(String[] pathParts, HttpExchange exchange) {
+        if (pathParts.length == 3 && NumChecker.isNum(pathParts[2])) {
+            return "DELETE_BY_ID";
         } else {
             sendBadRequest(exchange);
+            return "UNKNOWN";
         }
-        return JTBD.UNKNOWN;
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, byte[] response) {
@@ -119,8 +94,8 @@ public class BaseHttpHandler {
     }
 
     protected void sendText(HttpExchange httpExchange, String text) {
-        byte[] response = text.getBytes(StandardCharsets.UTF_8);
-        httpExchange.getResponseHeaders().add("Content-Type", "application/json;charset=utf-8");
+        byte[] response = text.getBytes(DEFAULT_CHARSET);
+        httpExchange.getResponseHeaders().add("Content-Type", DEFAULT_CONTENT_TYPE);
         sendResponse(httpExchange, OK, response);
     }
 
@@ -152,9 +127,9 @@ public class BaseHttpHandler {
         sendResponse(httpExchange, INTERNAL_SERVER_ERROR, null);
     }
 
-    protected String getTaskFromRequestBody(HttpExchange httpExchange) throws IOException {
+    protected String parseContentFromRequestBody(HttpExchange httpExchange) throws IOException {
         try (InputStream requestBody = httpExchange.getRequestBody()) {
-            return new String(requestBody.readAllBytes(), StandardCharsets.UTF_8);
+            return new String(requestBody.readAllBytes(), DEFAULT_CHARSET);
         } catch (IOException e) {
             sendInternalServerError(httpExchange);
             throw e;

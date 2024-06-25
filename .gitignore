@@ -1,6 +1,7 @@
 ### IntelliJ IDEA ###
-/java-kanban.iml
+*.iml
 out/
+.idea
 !**/src/main/**/out/
 !**/src/test/**/out/
 

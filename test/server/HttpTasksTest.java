@@ -2,16 +2,15 @@ package server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import exceptions.InvalidReceivedTimeException;
 import model.Task;
 import model.TaskStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 import server.adapters.DurationAdapter;
 import server.adapters.LocalDateTimeAdapter;
-import server.type_tokens.TaskListTypeToken;
 import service.InMemoryTaskManager;
 import service.TaskManager;
 
@@ -23,6 +22,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HttpTasksTest {
     String baseUri = "http://localhost:8080/tasks";
@@ -76,7 +77,7 @@ public class HttpTasksTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         List<Task> tasksFromManager = manager.getAllTasks();
-        List<Task> tasksFromResponse = gson.fromJson(response.body(), new TaskListTypeToken().getType());
+        List<Task> tasksFromResponse = gson.fromJson(response.body(), new TypeToken<List<Task>>(){}.getType());
 
         assertEquals(200, response.statusCode());
         assertEquals(tasksFromManager.size(), tasksFromResponse.size(), "Размеры списков не совпадают.");
